@@ -1,4 +1,4 @@
-# SINDAN-GRAPH-STANDALONE(ver.0.1)
+# SINDAN-GRAPH-STANDALONE(ver.0.1.1)
 
 MEMO
 
@@ -48,13 +48,13 @@ diskutil list
 sudo dd if='YYYY-mm-dd-raspios-bullseye-armhf-lite.img' of='SD cord' bs=1m
 ```
 
-#### Reference Raspbian
+#### Raspbian Reference
 
 https://www.raspberrypi.com/documentation/computers/getting-started.html
 
 ### Operate on Raspberry Pi 4 for Raspbian OS
 
-- Use wlan0(Wifi)
+- Use wlan0(WiFi)
 
 ``` sh
 sudo rfkill list
@@ -69,6 +69,14 @@ wpa_passphrase "SSID" "PASSWORD" | sudo tee -a /etc/wpa_supplicant/wpa_supplican
 reboot
 ```
 
+- setup timezone
+
+``` sh
+sudo timedatectl set-timezone Asia/Tokyo
+```
+
+- apt install
+
 ``` sh
 sudo apt install -y git tmux
 ```
@@ -76,11 +84,21 @@ sudo apt install -y git tmux
 - Setup SINDAN-CLIENT
 
 ``` sh
+cd
 git clone https://github.com/SINDAN/sindan-client.git
 cd sindan-client/linux/
 cp sindan.conf.example sindan.conf
 ./install.sh
 cd
+```
+
+- Measurement of once every 5 minutes.
+use crontab
+
+``` sh
+echo 'SHELL=/bin/sh' | sudo tee -a /etc/cron.d/sindan
+echo 'PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin' | sudo tee -a /etc/cron.d/sindan
+echo '*/5 * * * * root /home/pi/sindan-client/linux/sindan.sh  1>/dev/null 2>/dev/null' | sudo tee -a /etc/cron.d/sindan
 ```
 
 - Setup ELK
@@ -93,7 +111,8 @@ source source ~/.bashrc
 ```
 
 ``` sh
-mkdir elastic
+cd
+mkdir -p elastic
 cd elastic/
 ```
 
@@ -109,34 +128,48 @@ tar xvzf kibana-oss-7.10.2-linux-aarch64.tar.gz
 tar xvzf logstash-oss-7.16.2-linux-aarch64.tar.gz
 ```
 
+Check ELK
+
 Use Tmux
 
-Window 1
+### Window:1
 
 - Setup Elasticsearch
 
 ``` sh
-cd elastic/elasticsearch-7.10.2
+cd ~/elastic/elasticsearch-7.10.2
 ./bin/elasticsearch
 ```
 
-Window 2
+### Window:2
 
 - Setup Kibana
 
 ``` sh
-cd elastic/kibana-7.10.2-linux-aarch64
+cd ~/elastic/kibana-7.10.2-linux-aarch64
 cd node/bin/
 sudo npm install -g n
+sudo n install 10.23.1
 mv node node.orgin
 ln -s `which node` node
+cd ~/elastic/kibana-7.10.2-linux-aarch64
+sed -i 's/#server.host: "localhost"/server.host: "0.0.0.0"/g' config/kibana.yml
+./bin/kibana
 ```
 
-#### Reference elastic
+- iptables
+
+``` sh
+sudo apt install -y iptables
+sudo iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 5601 -j ACCEPT
+```
+
+#### Elastic Reference
 
 https://www.elastic.co/guide/en/elasticsearch/reference/current/targz.html#targz
 
-## Memo
+### Memo
 
 - Update node
 
@@ -154,4 +187,16 @@ sudo apt install -y nodejs npm
 ``` sh
 curl -sSL https://get.docker.com | sh
 docker -v
+```
+
+- iptables-persistent
+
+``` sh
+sudo apt install -y iptables-persistent
+```
+
+- ufw
+
+``` sh
+sudo apt install ufw
 ```
